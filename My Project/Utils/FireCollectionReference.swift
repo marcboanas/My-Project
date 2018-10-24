@@ -10,4 +10,6 @@ import Foundation
 
 enum FireCollectionReference: String {
     case users
+    case posts
+    case comments
 }

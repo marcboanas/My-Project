@@ -15,6 +15,10 @@ extension UIColor {
     static func rgb(red: CGFloat, green: CGFloat, blue: CGFloat) -> UIColor {
         return UIColor(red: red/255, green: green/255, blue: blue/255, alpha: 1)
     }
+    
+    static func mainBlue() -> UIColor {
+        return UIColor.rgb(red: 17, green: 154, blue: 237)
+    }
 }
 
 enum ErrorType: Error {
@@ -39,10 +43,17 @@ extension Encodable {
 
 extension DocumentSnapshot {
     func decode<T: Decodable>(as objectType: T.Type, includingId: Bool = true) throws -> T {
+        
         var documentJSON = self.data()
+        
         if includingId {
             documentJSON!["id"] = documentID
         }
+        
+        if documentJSON!["created_at"] != nil {
+            documentJSON!["created_at"] = "boob"
+        }
+        
         let documentData = try JSONSerialization.data(withJSONObject: documentJSON!, options: [])
         let decoderObject = try JSONDecoder().decode(objectType, from: documentData)
         return decoderObject

@@ -11,6 +11,7 @@ target 'My Project' do
   pod 'Firebase/Database'
   pod 'Firebase/Firestore'
   pod 'Firebase/Storage'
+  pod 'Firebase/Messaging'
 
   target 'My ProjectTests' do
     inherit! :search_paths

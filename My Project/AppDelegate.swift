@@ -7,12 +7,13 @@
 //
 
 import UIKit
+import UserNotifications
+import Firebase
 
 @UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
 
     var window: UIWindow?
-
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
@@ -21,7 +22,76 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         window = UIWindow()
         window?.rootViewController = MainTabBarController()
         
+        attemptRegisterForNotifications(application: application)
+        
         return true
+    }
+    
+    private func attemptRegisterForNotifications(application: UIApplication) {
+        print("Attempting to register APNS...")
+        
+        Messaging.messaging().delegate = self
+        
+        // user notifications auth iOS 10+
+        let options: UNAuthorizationOptions = [.alert, .sound, .badge]
+        
+        let center = UNUserNotificationCenter.current()
+        center.delegate = self
+        
+        center.requestAuthorization(options: options) { (granted, err) in
+            if let err = err {
+                print("Failed to authorize for remote notifications: ", err)
+                return
+            }
+            
+            if granted {
+                print("Auth granted for remote notifications")
+            } else {
+                print("Auth denied for remote notificatios")
+            }
+        }
+        
+        application.registerForRemoteNotifications()
+    }
+    
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        print("Registered for remote notifications: ", deviceToken)
+    }
+    
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String) {
+        print("Received registration token: ", fcmToken)
+    }
+    
+    // listen for user notifications (app in foreground)
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        print("Message received")
+        completionHandler(.alert)
+    }
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        
+        let userInfo = response.notification.request.content.userInfo
+        
+        print(userInfo)
+        
+        if let followerId = userInfo["followerId"] as! String? {
+            print("Follower Id: ", followerId)
+            
+            // I want to push the userProfileController for followerId
+            let userProfileController = UserProfileController(collectionViewLayout: UICollectionViewFlowLayout())
+            
+            FireService.shared.readOnceDocument(from: .users, id: followerId, returning: User.self) { (follower) in
+                userProfileController.user = follower
+                DispatchQueue.main.async {
+                    if let mainTabBarController = self.window?.rootViewController as? MainTabBarController {
+                        if let homeNavigationController = mainTabBarController.viewControllers?.first as? UINavigationController {
+                            homeNavigationController.pushViewController(userProfileController, animated: true)
+                        }
+                    }
+                }
+            }
+            
+        }
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

@@ -1,5 +1,5 @@
 //
-//  ViewController.swift
+//  SignupController.swift
 //  My Project
 //
 //  Created by Sophie Louise Boanas-Levitt on 13/07/2018.
@@ -9,7 +9,7 @@
 import UIKit
 import Firebase
 
-class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+class SignupController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
     let plusPhotoButton: UIButton = {
         let button = UIButton(type: .system)
@@ -87,12 +87,31 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         return button
     }()
     
+    let alreadyHaveAnAccountButton: UIButton = {
+        let button = UIButton(type: .system)
+        
+        let attributes = [NSAttributedStringKey.foregroundColor: UIColor.lightGray, NSAttributedStringKey.font: UIFont.boldSystemFont(ofSize: 14)]
+        
+        let attributedTitle = NSMutableAttributedString(string: "Already have an account? ", attributes: attributes)
+        
+        attributedTitle.append(NSMutableAttributedString(string: "Log In", attributes: [NSAttributedStringKey.foregroundColor: UIColor.rgb(red: 17, green: 154, blue: 237), NSAttributedStringKey.font: UIFont.boldSystemFont(ofSize: 14)]))
+        
+        button.setAttributedTitle(attributedTitle, for: .normal)
+        
+        button.addTarget(self, action: #selector(handleShowLogIn), for: .touchUpInside)
+        return button
+    }()
+    
+    @objc func handleShowLogIn() {
+        _ = navigationController?.popViewController(animated: true)
+    }
+    
     @objc func handleTextInputChange() {
         let isFormValid = emailTextField.text?.count ?? 0 > 0 && usernameTextField.text?.count ?? 0 > 0 && passwordTextField.text?.count ?? 0 > 0
         
         if isFormValid {
             signupButton.isEnabled = true
-            signupButton.backgroundColor = UIColor.rgb(red: 17, green: 154, blue: 237)
+            signupButton.backgroundColor = .mainBlue()
         } else {
             signupButton.isEnabled = false
             signupButton.backgroundColor = UIColor.rgb(red: 149, green: 204, blue: 244)
@@ -106,11 +125,25 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         guard let image = plusPhotoButton.imageView?.image else { return }
         guard let uploadData = UIImageJPEGRepresentation(image, 0.3) else { return }
         
-        FireService.shared.createUser(withEmail: email, username: username, password: password, photo: uploadData)
+        FireService.shared.createUser(withEmail: email, username: username, password: password, photo: uploadData) { (success) in
+            if let _ = success {
+                DispatchQueue.main.async {
+                    guard let mainTabBarController = UIApplication.shared.keyWindow?.rootViewController as? MainTabBarController else { return }
+                    mainTabBarController.setupViewControllers()
+                    self.dismiss(animated: true, completion: nil)
+                }
+            }
+        }
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        view.backgroundColor = .white
+        
+        view.addSubview(alreadyHaveAnAccountButton)
+        alreadyHaveAnAccountButton.anchor(top: nil, left: view.leftAnchor, bottom: view.bottomAnchor, right: view.rightAnchor, paddingTop: 0, paddingLeft: 0, paddingBottom: 0, paddingRight: 0, width: nil, height: 50)
+        
         view.addSubview(plusPhotoButton)
         setupInputFields()
         plusPhotoButton.anchor(top: view.topAnchor, left: nil, bottom: nil, right: nil, paddingTop: 40, paddingLeft: 0, paddingBottom: 0, paddingRight: 0, width: 140, height: 140)
@@ -152,7 +185,7 @@ extension UIView {
         }
         
         if let bottom = bottom {
-            self.bottomAnchor.constraint(equalTo: bottom, constant: paddingBottom).isActive = true
+            self.bottomAnchor.constraint(equalTo: bottom, constant: -paddingBottom).isActive = true
         }
         
         if let right = right {
